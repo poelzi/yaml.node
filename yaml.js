@@ -226,7 +226,7 @@ require.extensions[".yaml"] = require.extensions[".yml"] = function (module) {
 
 
 // Helper function that emits a serialized version of the given item.
-var serialize = function(emitter, item) {
+var serialize = exports.serialize = function(emitter, item) {
   // FIXME: throw on circulars
   switch (typeof item) {
     case "string":
@@ -261,15 +261,15 @@ var serialize = function(emitter, item) {
   }
 };
 
-// The `dump` function serializes its arguments to YAML. Any number of arguments may be provided,
-// and the arguments should be plain JavaScript objects, arrays or primitives. Each argument is
-// treated as a single document to serialize. The return value is a string.
-exports.dump = function() {
+// The `dump_ext` function serializes its arguments to YAML. The first argument is the serializer to use,
+// the rest is like dump()
+exports.dump_ext = function() {
   var emitter = new binding.Emitter(),
       documents = arguments;
   emitter.stream(function() {
     var length = documents.length;
-    for (var i = 0; i < length; i++) {
+    var serialize = documents[0];
+    for (var i = 1; i < length; i++) {
       var document = documents[i];
       emitter.document(function() {
         serialize(emitter, document);
@@ -278,3 +278,12 @@ exports.dump = function() {
   });
   return emitter.chunks.join('');
 };
+
+// The `dump` function serializes its arguments to YAML. Any number of arguments may be provided,
+// and the arguments should be plain JavaScript objects, arrays or primitives. Each argument is
+// treated as a single document to serialize. The return value is a string.
+exports.dump = function() {
+  nargs = [serialize].concat(Array.prototype.slice.call(arguments))
+  return exports.dump_ext.apply(exports.dump_ex, nargs);
+};
+
